@@ -1,0 +1,4 @@
+program Prog_simple_assign begin x := num end
+program Prog_simple_read begin read ( num ) end
+program Prog_simple_read_mult begin read ( num , x , y ) end
+program Prog_simple_write begin write ( num ) end
