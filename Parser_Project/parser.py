@@ -16,24 +16,28 @@ def lex():
     if m is not None:
         nextToken = 'end'
         inputString = inputString.replace(m.group(1), "")
-        return
+        return m.group(1)
 
     # match parenthesis
-    p = re.compile('([(),]) ')
+    p = re.compile('([(),;]) ')
     m = p.match(inputString)
     if m is not None:
         if m.group(1) == '(':
             nextToken = '<leftParenthesis>'
             inputString = inputString.replace(m.group(1) + " ", "")
-            return
+            return m.group(1)
         elif m.group(1) == ')':
             nextToken = '<rightParenthesis>'
             inputString = inputString.replace(m.group(1) + " ", "")
-            return
+            return m.group(1)
         elif m.group(1) == ',':
             nextToken = '<comma>'
             inputString = inputString.replace(m.group(1) + " ", "")
-            return
+            return m.group(1)
+        elif m.group(1) == ';':
+            nextToken = ';'
+            inputString = inputString.replace(m.group(1) + " ", "")
+            return m.group(1)
 
     # match assignment
     p = re.compile('(:=) ')
@@ -41,32 +45,47 @@ def lex():
     if m is not None:
         nextToken = '<assignment_op>'
         inputString = inputString.replace(m.group(1) + " ", "")
-        return
+        return m.group(1)
 
+    # match + | -
     p = re.compile('([+-]) ')
     m = p.match(inputString)
     if m is not None:
         if nextToken == '<term>':
             nextToken = '<adding_operator>'
             inputString = inputString.replace(m.group(1) + " ", "")
-            return
+            return m.group(1)
         else:
             nextToken = '<sign>'
             inputString = inputString.replace(m.group(1) + " ", "")
-            return
+            return m.group(1)
+
+    # match * | /
+    p = re.compile('([*/]) ')
+    m = p.match(inputString)
+    if m is not None:
+        if nextToken == '<factor>':
+            nextToken = '<multiplying_operator>'
+            inputString = inputString.replace(m.group(1) + " ", "")
+            return m.group(1)
 
     p = re.compile('([=><][=>]?) ')
     m = p.match(inputString)
     if m is not None:
-        if m.group(1)[1] == ' ':
+        if len(m.group(1)) == 1:
             nextToken = '<relational_operator>'
             inputString = inputString.replace(m.group(1) + " ", "")
-            return
-        elif (m.group(1)[1] == '>') or (m.group(1)[1] == '='):
+            return m.group(1)
+        elif m.group(1)[0] == '=' or m.group(1)[0] == '>' or m.group(1)[0] == '<':
+            if m.group(1)[1] == '=':
+                nextToken = '<relational_operator>'
+                inputString = inputString.replace(m.group(1) + " ", "")
+                return m.group(1)
+        elif m.group(1)[1] == '>':
             if m.group(1)[0] != '=':
                 nextToken = '<relational_operator>'
                 inputString = inputString.replace(m.group(1) + " ", "")
-                return
+                return m.group(1)
 
     p = re.compile('([A-Za-z]\w*) ')
     m = p.match(inputString)
@@ -76,22 +95,22 @@ def lex():
         if m.group(1) in termList:
             nextToken = m.group(1)
             inputString = inputString.replace(m.group(1) + " ", "")
-            return
+            return m.group(1)
         elif m2 is not None and nextToken == 'program':
             nextToken = '<progname>'
             inputString = inputString.replace(m2.group(1) + " ", "")
-            return
+            return m.group(1)
         else:
             nextToken = '<variable>'
             inputString = inputString.replace(m.group(1) + " ", "")
-            return
+            return m.group(1)
 
     p = re.compile('([1-9]\d*) ')
     m = p.match(inputString)
     if (m is not None) or (inputString[0] == '0'):
         nextToken = '<constant>'
         inputString = inputString.replace(m.group(1) + " ", "")
-        return
+        return m.group(1)
 
     # print("Unknown symbol encountered")
     # print("InputString: " + inputString + ", NextToken: " + nextToken)
@@ -172,6 +191,7 @@ def read_stmt():
     global inputString
     global nextToken
     lex()
+    # loop until we close the function
     if nextToken == '<leftParenthesis>':
         lex()
         while nextToken != '<rightParenthesis>':
@@ -186,6 +206,7 @@ def write_stmt():
     global inputString
     global nextToken
     lex()
+    # loop until we close the function
     if nextToken == '<leftParenthesis>':
         while nextToken != '<rightParenthesis>':
             expression_stmt()
@@ -212,6 +233,17 @@ def expression_stmt():
     global inputString
     global nextToken
     simple_expr()
+    # check for relational operator
+    # terminal hit - put back
+    tok = lex()
+    if nextToken == '<relational_operator>':
+        simple_expr()
+    elif nextToken == 'end':
+        inputString = tok
+    elif nextToken == '<rightParenthesis>':
+        inputString = tok + ' ' + inputString
+    else:
+        sys.exit('expression_stmt')
     return
 
 # <simple expr> ::= [ <sign> ] <term> { <adding_operator> <term> }
@@ -219,21 +251,40 @@ def simple_expr():
     global inputString
     global nextToken
     lex()
+    # check for sign
+    # if sign, grab next token
+    # else descend
     if nextToken == '<sign>':
         lex()
         term()
-        return
     elif nextToken == '<variable>' or nextToken == '<constant>':
         term()
-        return
     else:
         sys.exit('simple_expr')
+    # found a term
+    # assign nextToken to <term> for lex
+    nextToken = '<term>'
+    tok = lex()
+    if nextToken == '<adding_operator>':
+        lex()
+        term()
+    else:
+        inputString = tok + ' ' + inputString
+    return
 
 # <term> ::= <factor> { <multiplying_operator> <factor> }
 def term():
     global inputString
     global nextToken
     factor()
+    # check for multiplying_operator
+    nextToken = '<factor>'
+    tok = lex()
+    if nextToken == '<multiplying_operator>':
+        lex()
+        factor()
+    else:
+        inputString = tok + ' ' + inputString
     return
 
 # <factor> ::= <variable> | <constant> | ( <expression> )
