@@ -1,4 +1,12 @@
+# assignment
 program Prog_simple_assign begin x := num end
+program Prog_assign_add begin x := num + num2 end
+# read tests
 program Prog_simple_read begin read ( num ) end
 program Prog_simple_read_mult begin read ( num , x , y ) end
+program Prog_simple_mix begin read ( x , 1 , z ) end
+# write tests
 program Prog_simple_write begin write ( num ) end
+program Prog_relational_write begin write ( num == num2 ) end
+program Prog_relational_write_mult begin write ( num <= num2 , num3 > num4 ) end
+program Prog_write_expr begin write ( num == x , 1 * 2 >= y - z ) end
