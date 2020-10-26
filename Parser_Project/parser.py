@@ -53,20 +53,20 @@ def lex():
     if m is not None:
         if nextToken == '<term>':
             nextToken = '<adding_operator>'
-            inputString = inputString.replace(m.group(1) + " ", "")
+            inputString = inputString.replace(m.group(1) + " ", "", 1)
             return m.group(1)
         else:
             nextToken = '<sign>'
-            inputString = inputString.replace(m.group(1) + " ", "")
+            inputString = inputString.replace(m.group(1) + " ", "", 1)
             return m.group(1)
 
     # match * | /
-    p = re.compile('([*/]) ')
+    p = re.compile('([*]) ')
     m = p.match(inputString)
     if m is not None:
         if nextToken == '<factor>':
             nextToken = '<multiplying_operator>'
-            inputString = inputString.replace(m.group(1) + " ", "")
+            inputString = inputString.replace(m.group(1) + " ", "", 1)
             return m.group(1)
 
     p = re.compile('([=><][=>]?) ')
@@ -257,35 +257,44 @@ def simple_expr():
     if nextToken == '<sign>':
         lex()
         term()
-    elif nextToken == '<variable>' or nextToken == '<constant>':
+    elif nextToken == '<variable>' or nextToken == '<constant>' or nextToken == '<leftParenthesis>':
         term()
     else:
         sys.exit('simple_expr')
-    # found a term
-    # assign nextToken to <term> for lex
-    nextToken = '<term>'
-    tok = lex()
-    if nextToken == '<adding_operator>':
-        lex()
-        term()
-    else:
-        inputString = tok + ' ' + inputString
-    return
+    # check if the next value is { <adding_operator> <term> }
+    # if not, put back the symbol
+    while True:
+        nextToken = '<term>'
+        tok = lex()
+        if nextToken == '<adding_operator>':
+            lex()
+            term()
+        elif nextToken == 'end':
+            inputString = nextToken
+            return
+        else:
+            inputString = tok + ' ' + inputString
+            return
 
 # <term> ::= <factor> { <multiplying_operator> <factor> }
 def term():
     global inputString
     global nextToken
     factor()
-    # check for multiplying_operator
-    nextToken = '<factor>'
-    tok = lex()
-    if nextToken == '<multiplying_operator>':
-        lex()
-        factor()
-    else:
-        inputString = tok + ' ' + inputString
-    return
+    # check if the next value is { <multiplying_operator> <factor> }
+    # if not, put back the symbol
+    while True:
+        nextToken = '<factor>'
+        tok = lex()
+        if nextToken == '<multiplying_operator>':
+            lex()
+            factor()
+        elif nextToken == 'end':
+            inputString = nextToken
+            return
+        else:
+            inputString = tok + ' ' + inputString
+            return
 
 # <factor> ::= <variable> | <constant> | ( <expression> )
 def factor():
@@ -293,9 +302,13 @@ def factor():
     global nextToken
     if nextToken == '<variable>' or nextToken == '<constant>':
         return
-    else:
+    elif nextToken == '<leftParenthesis>':
         expression_stmt()
+        # consume right parenthesis
+        lex()
         return
+    else:
+        sys.exit('factor')
 
 # console input
 # inputString = input("Enter a string: ")
