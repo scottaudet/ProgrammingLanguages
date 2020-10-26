@@ -119,6 +119,7 @@ def lex():
     # grab unidentified symbol
     p = re.compile('([^\s]+)')
     m = p.match(inputString)
+    print('Unrecognizable symbol error')
     sys.exit('Lex analyzer: Unrecognized symbol ' + m.group(1))
 
 
@@ -250,8 +251,12 @@ def read_stmt():
     # loop until we close the function
     if nextToken == '<leftParenthesis>':
         lex()
-        while nextToken != '<rightParenthesis>':
-            lex()
+        try:
+            while nextToken != '<rightParenthesis>':
+                lex()
+        except IndexError:
+            print('Read statement not closed properly')
+            sys.exit('read_stmt')
     else:
         print('Error expected (, got ', nextToken)
         sys.exit('read_stmt')
@@ -264,9 +269,13 @@ def write_stmt():
     lex()
     # loop until we close the function
     if nextToken == '<leftParenthesis>':
-        while nextToken != '<rightParenthesis>':
-            expression_stmt()
-            lex()
+        try:
+            while nextToken != '<rightParenthesis>':
+                expression_stmt()
+                lex()
+        except IndexError:
+            print('Write statement not closed properly')
+            sys.exit('write_stmt')
     else:
         print('Error expected (, got ', nextToken)
         sys.exit('write_stmt')
@@ -384,4 +393,4 @@ with open('ValidTestProgram.txt', 'r') as file:
                 print("The string is syntactically correct! :)\n")
             except SystemExit:
                 print(sys.exc_info())
-                print("Program System Exception\n")
+                print("Program exception raised\n")

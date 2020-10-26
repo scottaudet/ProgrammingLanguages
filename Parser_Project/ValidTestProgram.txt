@@ -6,7 +6,6 @@ program Prog_assign_add begin x := num * num2 end
 program Prog_assign_mult begin x := 1 * 2 * 3 * 4 end
 program Prog_assign_add begin x := 1 + 2 + 3 + 4 end
 program Prog_assign_expr begin x := ( num > num1 ) end
-program Prog_assign_expr begin x := ( num >< num1 ) end
 #
 # read tests
 #
@@ -37,3 +36,9 @@ program Prog_simple_while begin while 1 == 1 do read ( var ) end
 # structured stmt test
 #
 program Prog_stuct_test begin begin read ( num ) end end
+#
+# error cases
+#
+program Prog_assign_expr begin x := ( num >< num1 ) end
+program Prog_assign_if begin if a < b end
+program Prog_write begin write ( num1 end
