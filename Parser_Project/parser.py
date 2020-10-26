@@ -8,14 +8,18 @@ nextToken = ""
 def lex():
     global inputString
     global nextToken
-    termList = ['program', 'if', 'while', 'begin', 'read', 'write']
+    termList = ['program', 'if', 'while', 'begin', 'read', 'write', 'then', 'else', 'do']
 
     # match 'end'
     p = re.compile('(end)')
     m = p.match(inputString)
     if m is not None:
         nextToken = 'end'
-        inputString = inputString.replace(m.group(1), "")
+        # handle if we have nested programs (ie structured stmt)
+        if len(inputString) > 3:
+            inputString = inputString.replace(m.group(1) + " ", "", 1)
+        else:
+            inputString = inputString.replace(m.group(1), "", 1)
         return m.group(1)
 
     # match parenthesis
@@ -61,7 +65,7 @@ def lex():
             return m.group(1)
 
     # match * | /
-    p = re.compile('([*]) ')
+    p = re.compile('([*/]) ')
     m = p.match(inputString)
     if m is not None:
         if nextToken == '<factor>':
@@ -177,24 +181,48 @@ def structured_stmt():
     global nextToken
 
     if nextToken == 'begin':
-        # put begin flag back
+        # put 'begin' flag back
         inputString = 'begin ' + inputString
         compound_stmt()
         return
     elif nextToken == 'if':
         if_stmt()
         return
-    elif nextToken == '<while>':
+    elif nextToken == 'while':
         while_stmt()
         return
 
 # <if stmt> ::= if <expression> then <stmt> | if <expression> then <stmt> else <stmt>
 def if_stmt():
-    pass
+    global inputString
+    global nextToken
+    expression_stmt()
+    lex()
+    if nextToken == 'then':
+        stmt()
+        tok = lex()
+    else:
+        sys.exit('if_stmt')
+    if nextToken == 'else':
+        stmt()
+    else:
+        if nextToken == 'end':
+            inputString = 'end'
+        else:
+            inputString = tok + ' ' + inputString
+    return
 
 # <while stmt> ::= while <expression> do <stmt>
 def while_stmt():
-    pass
+    global inputString
+    global nextToken
+    expression_stmt()
+    lex()
+    if nextToken == 'do':
+        stmt()
+    else:
+        sys.exit('while_stmt')
+    return
 
 # <simple stmt> ::= <assignment stmt> | <read stmt> | <write stmt>
 def simple_stmt():
