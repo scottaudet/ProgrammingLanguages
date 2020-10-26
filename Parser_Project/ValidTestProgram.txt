@@ -6,6 +6,7 @@ program Prog_assign_add begin x := num * num2 end
 program Prog_assign_mult begin x := 1 * 2 * 3 * 4 end
 program Prog_assign_add begin x := 1 + 2 + 3 + 4 end
 program Prog_assign_expr begin x := ( num > num1 ) end
+program Prog_assign_expr begin x := ( num >< num1 ) end
 #
 # read tests
 #
