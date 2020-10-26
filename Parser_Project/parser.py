@@ -379,18 +379,33 @@ def factor():
         sys.exit('factor')
 
 # console input
-# inputString = input("Enter a string: ")
+def manual_parser():
+    global inputString
+    inputString = input("Enter a string: ")
+    try:
+        print(inputString)
+        program()
+        print("The string is syntactically correct! :)\n")
+    except SystemExit:
+        print(sys.exc_info())
+        print("Program exception raised\n")
 
-# file I/O
-with open('ValidTestProgram.txt', 'r') as file:
-    programs = file.readlines()
-    for inputString in programs:
-        inputString = inputString.replace('\n', '')
-        if inputString[0] != '#':
-            try:
-                print(inputString)
-                program()
-                print("The string is syntactically correct! :)\n")
-            except SystemExit:
-                print(sys.exc_info())
-                print("Program exception raised\n")
+# file I/O function
+# treat '#' as a comment - does not pass line to program()
+def parser(fileName):
+    global inputString
+    with open(fileName, 'r') as file:
+        programs = file.readlines()
+        for inputString in programs:
+            inputString = inputString.replace('\n', '')
+            if inputString[0] != '#':
+                try:
+                    print(inputString)
+                    program()
+                    print("The string is syntactically correct! :)\n")
+                except SystemExit:
+                    print(sys.exc_info())
+                    print("Program exception raised\n")
+
+# pass file to run program
+parser('ValidTestProgram.txt')
