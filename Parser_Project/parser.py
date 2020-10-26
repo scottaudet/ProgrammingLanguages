@@ -8,14 +8,18 @@ nextToken = ""
 def lex():
     global inputString
     global nextToken
-    termList = ['program', 'if', 'while', 'begin', 'read', 'write']
+    termList = ['program', 'if', 'while', 'begin', 'read', 'write', 'then', 'else', 'do']
 
-    #match end
+    # match 'end'
     p = re.compile('(end)')
     m = p.match(inputString)
     if m is not None:
         nextToken = 'end'
-        inputString = inputString.replace(m.group(1), "")
+        # handle if we have nested programs (ie structured stmt)
+        if len(inputString) > 3:
+            inputString = inputString.replace(m.group(1) + " ", "", 1)
+        else:
+            inputString = inputString.replace(m.group(1), "", 1)
         return m.group(1)
 
     # match parenthesis
@@ -24,19 +28,19 @@ def lex():
     if m is not None:
         if m.group(1) == '(':
             nextToken = '<leftParenthesis>'
-            inputString = inputString.replace(m.group(1) + " ", "")
+            inputString = inputString.replace(m.group(1) + " ", "", 1)
             return m.group(1)
         elif m.group(1) == ')':
             nextToken = '<rightParenthesis>'
-            inputString = inputString.replace(m.group(1) + " ", "")
+            inputString = inputString.replace(m.group(1) + " ", "", 1)
             return m.group(1)
         elif m.group(1) == ',':
             nextToken = '<comma>'
-            inputString = inputString.replace(m.group(1) + " ", "")
+            inputString = inputString.replace(m.group(1) + " ", "", 1)
             return m.group(1)
         elif m.group(1) == ';':
             nextToken = ';'
-            inputString = inputString.replace(m.group(1) + " ", "")
+            inputString = inputString.replace(m.group(1) + " ", "", 1)
             return m.group(1)
 
     # match assignment
@@ -44,7 +48,7 @@ def lex():
     m = p.match(inputString)
     if m is not None:
         nextToken = '<assignment_op>'
-        inputString = inputString.replace(m.group(1) + " ", "")
+        inputString = inputString.replace(m.group(1) + " ", "", 1)
         return m.group(1)
 
     # match + | -
@@ -61,7 +65,7 @@ def lex():
             return m.group(1)
 
     # match * | /
-    p = re.compile('([*]) ')
+    p = re.compile('([*/]) ')
     m = p.match(inputString)
     if m is not None:
         if nextToken == '<factor>':
@@ -74,17 +78,17 @@ def lex():
     if m is not None:
         if len(m.group(1)) == 1:
             nextToken = '<relational_operator>'
-            inputString = inputString.replace(m.group(1) + " ", "")
+            inputString = inputString.replace(m.group(1) + " ", "", 1)
             return m.group(1)
         elif m.group(1)[0] == '=' or m.group(1)[0] == '>' or m.group(1)[0] == '<':
             if m.group(1)[1] == '=':
                 nextToken = '<relational_operator>'
-                inputString = inputString.replace(m.group(1) + " ", "")
+                inputString = inputString.replace(m.group(1) + " ", "", 1)
                 return m.group(1)
         elif m.group(1)[1] == '>':
             if m.group(1)[0] != '=':
                 nextToken = '<relational_operator>'
-                inputString = inputString.replace(m.group(1) + " ", "")
+                inputString = inputString.replace(m.group(1) + " ", "", 1)
                 return m.group(1)
 
     p = re.compile('([A-Za-z]\w*) ')
@@ -94,22 +98,22 @@ def lex():
         m2 = p2.match(inputString)
         if m.group(1) in termList:
             nextToken = m.group(1)
-            inputString = inputString.replace(m.group(1) + " ", "")
+            inputString = inputString.replace(m.group(1) + " ", "", 1)
             return m.group(1)
         elif m2 is not None and nextToken == 'program':
             nextToken = '<progname>'
-            inputString = inputString.replace(m2.group(1) + " ", "")
+            inputString = inputString.replace(m2.group(1) + " ", "", 1)
             return m.group(1)
         else:
             nextToken = '<variable>'
-            inputString = inputString.replace(m.group(1) + " ", "")
+            inputString = inputString.replace(m.group(1) + " ", "", 1)
             return m.group(1)
 
     p = re.compile('([1-9]\d*) ')
     m = p.match(inputString)
     if (m is not None) or (inputString[0] == '0'):
         nextToken = '<constant>'
-        inputString = inputString.replace(m.group(1) + " ", "")
+        inputString = inputString.replace(m.group(1) + " ", "", 1)
         return m.group(1)
 
     # print("Unknown symbol encountered")
@@ -144,7 +148,6 @@ def compound_stmt():
         stmt()
         lex()
         while nextToken == ';':
-            lex()
             stmt()
             lex()
         if nextToken == 'end':
@@ -165,11 +168,61 @@ def stmt():
     if nextToken == 'read' or nextToken == 'write' or nextToken == '<variable>':
         simple_stmt()
         return
-    # elif (nextToken == 'if' or nextToken == 'while' or nextToken == 'begin'):
-    #    structured_stmt()
+    elif nextToken == 'begin' or nextToken == 'if' or nextToken == 'while':
+        structured_stmt()
+        return
     else:
         print("Error: Expected statement start, got ", nextToken)
         sys.exit(6)
+
+# <structured stmt> ::= <compound stmt> | <if stmt> | <while stmt>
+def structured_stmt():
+    global inputString
+    global nextToken
+
+    if nextToken == 'begin':
+        # put 'begin' flag back
+        inputString = 'begin ' + inputString
+        compound_stmt()
+        return
+    elif nextToken == 'if':
+        if_stmt()
+        return
+    elif nextToken == 'while':
+        while_stmt()
+        return
+
+# <if stmt> ::= if <expression> then <stmt> | if <expression> then <stmt> else <stmt>
+def if_stmt():
+    global inputString
+    global nextToken
+    expression_stmt()
+    lex()
+    if nextToken == 'then':
+        stmt()
+        tok = lex()
+    else:
+        sys.exit('if_stmt')
+    if nextToken == 'else':
+        stmt()
+    else:
+        if nextToken == 'end':
+            inputString = 'end'
+        else:
+            inputString = tok + ' ' + inputString
+    return
+
+# <while stmt> ::= while <expression> do <stmt>
+def while_stmt():
+    global inputString
+    global nextToken
+    expression_stmt()
+    lex()
+    if nextToken == 'do':
+        stmt()
+    else:
+        sys.exit('while_stmt')
+    return
 
 # <simple stmt> ::= <assignment stmt> | <read stmt> | <write stmt>
 def simple_stmt():
