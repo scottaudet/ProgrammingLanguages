@@ -23,6 +23,7 @@ program Prog_write_expr begin write ( num == x , 1 * 2 >= y - z ) end
 # multiple programs statements
 #
 program Prog_stmts begin write ( num ) ; read ( var1 , var2 ) end
+program Prog_stmts_two begin write ( num ) ; read ( var1 ) ; n := 1 end
 #
 # if statements
 #
@@ -36,3 +37,11 @@ program Prog_simple_while begin while 1 == 1 do read ( var ) end
 # structured stmt test
 #
 program Prog_stuct_test begin begin read ( num ) end end
+#
+# error cases
+#
+program Prog_bad_relational begin x := ( num >< num1 ) end
+program Prog_bad_if begin if a < b end
+program Prog_bad_write begin write ( num1 end
+program malformed_name begin n := 1 end
+program Prog_missing_semi begin n := 1 read ( num ) end

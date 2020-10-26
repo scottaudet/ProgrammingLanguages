@@ -116,9 +116,11 @@ def lex():
         inputString = inputString.replace(m.group(1) + " ", "", 1)
         return m.group(1)
 
-    # print("Unknown symbol encountered")
-    # print("InputString: " + inputString + ", NextToken: " + nextToken)
-    sys.exit('lex analyzer')
+    # grab unidentified symbol
+    p = re.compile('([^\s]+)')
+    m = p.match(inputString)
+    print('Unrecognizable symbol error')
+    sys.exit('Lex analyzer: Unrecognized symbol ' + m.group(1))
 
 
 # <program> ::= program <progname> <compound stmt>
@@ -135,7 +137,7 @@ def program():
             print("Expected a program name; got " + nextToken)
             sys.exit(3)
     else:
-        print("Expected 'program'; got " + nextToken)
+        print("Expected 'program' got " + nextToken)
         sys.exit(2)
 
 
@@ -153,11 +155,11 @@ def compound_stmt():
         if nextToken == 'end':
             return
         else:
-            print("Error describe in detail")
-            sys.exit('compound_stmt')
+            print("Error program failed to exit properly")
+            sys.exit('compound_stmt_end')
     else:
-        print("Error")
-        sys.exit(42)
+        print("Expected 'begin' got " + nextToken)
+        sys.exit('compound_stmt_start')
 
 
 # <stmt> ::= <simple stmt> | <structured stmt>
@@ -172,8 +174,8 @@ def stmt():
         structured_stmt()
         return
     else:
-        print("Error: Expected statement start, got ", nextToken)
-        sys.exit(6)
+        print("Error: Expected statement keyword, got ", nextToken)
+        sys.exit('stmt')
 
 # <structured stmt> ::= <compound stmt> | <if stmt> | <while stmt>
 def structured_stmt():
@@ -202,6 +204,7 @@ def if_stmt():
         stmt()
         tok = lex()
     else:
+        print('Improperly structured if statement')
         sys.exit('if_stmt')
     if nextToken == 'else':
         stmt()
@@ -221,6 +224,7 @@ def while_stmt():
     if nextToken == 'do':
         stmt()
     else:
+        print('Improperly structured while statement')
         sys.exit('while_stmt')
     return
 
@@ -247,8 +251,12 @@ def read_stmt():
     # loop until we close the function
     if nextToken == '<leftParenthesis>':
         lex()
-        while nextToken != '<rightParenthesis>':
-            lex()
+        try:
+            while nextToken != '<rightParenthesis>':
+                lex()
+        except IndexError:
+            print('Read statement not closed properly')
+            sys.exit('read_stmt')
     else:
         print('Error expected (, got ', nextToken)
         sys.exit('read_stmt')
@@ -261,9 +269,13 @@ def write_stmt():
     lex()
     # loop until we close the function
     if nextToken == '<leftParenthesis>':
-        while nextToken != '<rightParenthesis>':
-            expression_stmt()
-            lex()
+        try:
+            while nextToken != '<rightParenthesis>':
+                expression_stmt()
+                lex()
+        except IndexError:
+            print('Write statement not closed properly')
+            sys.exit('write_stmt')
     else:
         print('Error expected (, got ', nextToken)
         sys.exit('write_stmt')
@@ -288,6 +300,7 @@ def expression_stmt():
     simple_expr()
     # check for relational operator
     # terminal hit - put back
+
     tok = lex()
     if nextToken == '<relational_operator>':
         simple_expr()
@@ -296,7 +309,8 @@ def expression_stmt():
     elif nextToken == '<rightParenthesis>':
         inputString = tok + ' ' + inputString
     else:
-        sys.exit('expression_stmt')
+        print('Error expression not properly closed')
+        sys.exit('expr_stmt')
     return
 
 # <simple expr> ::= [ <sign> ] <term> { <adding_operator> <term> }
@@ -361,21 +375,37 @@ def factor():
         lex()
         return
     else:
+        print('Did not find terminal or expression')
         sys.exit('factor')
 
 # console input
-# inputString = input("Enter a string: ")
+def manual_parser():
+    global inputString
+    inputString = input("Enter a string: ")
+    try:
+        print(inputString)
+        program()
+        print("The string is syntactically correct! :)\n")
+    except SystemExit:
+        print(sys.exc_info())
+        print("Program exception raised\n")
 
-# file I/O
-with open('ValidTestProgram.txt', 'r') as file:
-    programs = file.readlines()
-    for inputString in programs:
-        inputString = inputString.replace('\n', '')
-        if inputString[0] != '#':
-            try:
-                print(inputString)
-                program()
-                print("The string is syntactically correct! :)\n")
-            except SystemExit:
-                print(sys.exc_info())
-                print("Program System Exception\n")
+# file I/O function
+# treat '#' as a comment - does not pass line to program()
+def parser(fileName):
+    global inputString
+    with open(fileName, 'r') as file:
+        programs = file.readlines()
+        for inputString in programs:
+            inputString = inputString.replace('\n', '')
+            if inputString[0] != '#':
+                try:
+                    print(inputString)
+                    program()
+                    print("The string is syntactically correct! :)\n")
+                except SystemExit:
+                    print(sys.exc_info())
+                    print("Program exception raised\n")
+
+# pass file to run program
+parser('ValidTestProgram.txt')
