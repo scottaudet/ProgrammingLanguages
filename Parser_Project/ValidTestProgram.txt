@@ -13,3 +13,5 @@ program Prog_simple_write begin write ( num ) end
 program Prog_relational_write begin write ( num == num2 ) end
 program Prog_relational_write_mult begin write ( num <= num2 , num3 > num4 ) end
 program Prog_write_expr begin write ( num == x , 1 * 2 >= y - z ) end
+# multiple programs statements
+program Prog_stmts begin write ( num ) ; read ( var1 , var2 ) end
